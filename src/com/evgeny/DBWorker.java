@@ -1,0 +1,68 @@
+package com.evgeny;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBWorker {
+    private static String url = null;
+    private static String user = null;
+    private static String password = null;
+
+    private static final String settings = "?verifyServerCertificate=false"+
+            "&useSSL=false"+
+            "&requireSSL=false"+
+            "&useLegacyDatetimeCode=false"+
+            "&amp"+
+            "&serverTimezone=UTC"+
+            "&allowPublicKeyRetrieval=true";
+
+    protected static boolean alreadyInit = false;
+    protected static boolean alreadyConnect = false;
+
+    protected static Connection connection = null;
+
+
+    public static void init(String url, String user, String password){
+        if (alreadyInit) return;
+        DBWorker.url = url+settings;
+        DBWorker.user = user;
+        DBWorker.password = password;
+        alreadyInit = true;
+    }
+
+    public static void connect() throws SQLException {
+        if (alreadyConnect) return;
+        try {
+            connection = DriverManager.getConnection(url, user, password);
+            alreadyConnect = true;
+        } catch (SQLException e) {
+            throw e;
+        }
+    }
+
+    public static void disconnectAndReset(){
+        url = null;
+        user = null;
+        password = null;
+        alreadyInit = false;
+        if (!alreadyConnect) return;
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        alreadyConnect = false;
+    }
+
+    public static void setAutoCommit(boolean auto){
+        if (!alreadyConnect) return;
+        try {
+            connection.setAutoCommit(auto);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
