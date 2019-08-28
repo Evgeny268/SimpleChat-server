@@ -3,6 +3,7 @@ package com.evgeny;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.logging.Level;
 
 public class DBWorker {
     private static String url = null;
@@ -50,9 +51,9 @@ public class DBWorker {
         try {
             connection.close();
         } catch (SQLException e) {
-            e.printStackTrace();
+            AppLogger.LOGGER.log(Level.WARNING,"Can't normaly close connection from database",e);
         }catch (Exception e){
-            e.printStackTrace();
+            AppLogger.LOGGER.log(Level.WARNING,"Can't normaly close connection from database",e);
         }
         alreadyConnect = false;
     }
@@ -62,7 +63,7 @@ public class DBWorker {
         try {
             connection.setAutoCommit(auto);
         } catch (SQLException e) {
-            e.printStackTrace();
+            AppLogger.LOGGER.log(Level.WARNING,"Can't make connection.setAutoCommit()",e);
         }
     }
 }
