@@ -36,6 +36,7 @@ public class DBWorker {
         if (alreadyConnect) return;
         try {
             connection = DriverManager.getConnection(url, user, password);
+            connection.setAutoCommit(false);
             alreadyConnect = true;
         } catch (SQLException e) {
             throw e;
@@ -58,12 +59,4 @@ public class DBWorker {
         alreadyConnect = false;
     }
 
-    public static void setAutoCommit(boolean auto){
-        if (!alreadyConnect) return;
-        try {
-            connection.setAutoCommit(auto);
-        } catch (SQLException e) {
-            AppLogger.LOGGER.log(Level.WARNING,"Can't make connection.setAutoCommit()",e);
-        }
-    }
 }
