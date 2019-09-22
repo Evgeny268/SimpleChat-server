@@ -14,7 +14,7 @@ public class ChatDBWorker extends DBWorker {
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
         try{
-            pstmt = connection.prepareStatement("SELECT * FROM user WHERE user.login = ?");
+            pstmt = connection.prepareStatement("SELECT * FROM user WHERE BINARY user.login = ?");
             pstmt.setString(1,login);
             resultSet = pstmt.executeQuery();
             while (resultSet.next()){
@@ -41,7 +41,7 @@ public class ChatDBWorker extends DBWorker {
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
         try{
-            pstmt = connection.prepareStatement("SELECT * FROM user WHERE user.login = ? AND user.password = ?");
+            pstmt = connection.prepareStatement("SELECT * FROM user WHERE BINARY user.login = ? AND BINARY user.password = ?");
             pstmt.setString(1,login);
             pstmt.setString(2,password);
             resultSet = pstmt.executeQuery();
