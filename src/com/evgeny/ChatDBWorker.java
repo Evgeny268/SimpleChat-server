@@ -1,5 +1,6 @@
 package com.evgeny;
 
+import transfers.RequestIn;
 import transfers.User;
 
 import java.sql.PreparedStatement;
@@ -313,12 +314,12 @@ public class ChatDBWorker extends DBWorker {
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
         try {
-            pstmt = connection.prepareStatement("select t.iduser from friend t\n" +
-                    "where friend_id = ? \n" +
-                    "and not exists (\n" +
-                    "  select 0 from friend\n" +
-                    "  where iduser = t.friend_id and friend_id = t.iduser \n" +
-                    ")\n");
+            pstmt = connection.prepareStatement("select t.iduser from friend t " +
+                    "where friend_id = ? " +
+                    "and not exists (" +
+                    "  select 0 from friend" +
+                    " where iduser = t.friend_id and friend_id = t.iduser" +
+                    ")");
             pstmt.setInt(1, idUser);
             resultSet = pstmt.executeQuery();
             while (resultSet.next()) {
@@ -425,5 +426,20 @@ public class ChatDBWorker extends DBWorker {
             return -2;
         }
         return 1;
+    }
+
+    public static RequestIn requestIn(User user){
+        int result  = 0;
+        if (!alreadyConnect) return null;
+        if (!checkLogAndPass(user.login, user.password)) return null;
+        int userId = getUserId(user.login);
+        ArrayList<Integer> reqId = selectStrangerRequest(userId);
+        ArrayList<User> users = new ArrayList<>();
+        for (int i = 0; i < reqId.size(); i++) {
+            User reqUser = getUserById(reqId.get(i));
+            users.add(reqUser);
+        }
+        RequestIn requestIn = new RequestIn(users);
+        return requestIn;
     }
 }

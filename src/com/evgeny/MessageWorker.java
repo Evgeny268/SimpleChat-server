@@ -3,10 +3,7 @@ package com.evgeny;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.java_websocket.WebSocket;
-import transfers.Friends;
-import transfers.TransferRequestAnswer;
-import transfers.TypeRequestAnswer;
-import transfers.User;
+import transfers.*;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -55,6 +52,8 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 getFriends(transfer);
             }else if (transfer.request.equals(ADD_FRIEND)){
                 addFriend(transfer);
+            }else if (transfer.request.equals(GET_REQUEST_IN)){
+                getRequestIn(transfer);
             }
         }
     }
@@ -170,6 +169,26 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
             }
         }
 
+    }
+
+    private void getRequestIn(TransferRequestAnswer transfer){
+        if (ChatDBWorker.checkLogAndPass(transfer.login, transfer.password)){
+            RequestIn requestIn = ChatDBWorker.requestIn(new User(transfer.login,transfer.password));
+            try {
+                webSocket.send(objToJson(requestIn));
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize RequestIn",e);
+                return;
+            }
+        }else {
+            TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
+            try {
+                webSocket.send(objToJson(out));
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize TransferRequestAnswer",e);
+                return;
+            }
+        }
     }
 
     public boolean checkLogin(String login){
