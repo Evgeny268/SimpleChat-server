@@ -36,7 +36,7 @@ public class DBWorker {
         if (alreadyConnect) return;
         try {
             connection = DriverManager.getConnection(url, user, password);
-            //connection.setAutoCommit(false);
+            connection.setAutoCommit(false);
             alreadyConnect = true;
         } catch (SQLException e) {
             throw e;
