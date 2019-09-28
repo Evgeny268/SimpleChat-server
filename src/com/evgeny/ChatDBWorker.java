@@ -241,11 +241,11 @@ public class ChatDBWorker extends DBWorker {
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
         try {
-            pstmt = connection.prepareStatement("select t.friend_id from friend t\n" +
-                    "where t.iduser = ? \n" +
-                    "and exists (\n" +
-                    "  select 0 from friend\n" +
-                    "  where iduser = t.friend_id and friend_id = t.iduser \n" +
+            pstmt = connection.prepareStatement("select t.friend_id from friend t " +
+                    "where t.iduser = ?" +
+                    " and exists (" +
+                    "  select 0 from friend" +
+                    "  where iduser = t.friend_id and friend_id = t.iduser" +
                     ")");
             pstmt.setInt(1, idUser);
             resultSet = pstmt.executeQuery();

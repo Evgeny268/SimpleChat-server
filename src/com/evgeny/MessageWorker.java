@@ -13,6 +13,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
+//TODO добавить метод objToJson и checkAuthorization
 
 public class MessageWorker implements Runnable, TypeRequestAnswer {
     private WebSocket webSocket;
@@ -52,6 +53,8 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 registration(transfer);
             }else if (transfer.request.equals(GET_FRIENDS)){
                 getFriends(transfer);
+            }else if (transfer.request.equals(ADD_FRIEND)){
+                addFriend(transfer);
             }
         }
     }
@@ -126,10 +129,47 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 AppLogger.LOGGER.log(Level.FINE,"can't serialize friends",e);
                 return;
             }
+            webSocket.send(strAnswer);
         }else {
-            strAnswer = AUTHORIZATION_FAILURE;
+            TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
+            ObjectMapper objectMapper = new ObjectMapper();
+            StringWriter stringWriter = new StringWriter();
+            try {
+                objectMapper.writeValue(stringWriter,out);
+                webSocket.send(strAnswer);
+            }catch (IOException e){
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize TransferRequestAnswer",e);
+                return;
+            }
         }
-        webSocket.send(strAnswer);
+    }
+
+    private void addFriend(TransferRequestAnswer transfer){
+        String strAnswer = ERROR;
+        if (ChatDBWorker.checkLogAndPass(transfer.login, transfer.password)){
+            int result = ChatDBWorker.addFriend(new User(transfer.login,transfer.password), new User(transfer.extra));
+            if (result>0){
+                strAnswer = REQUEST_SENT;
+            }else strAnswer = ERROR;
+            try {
+                String jsonStr = objToJson(new TransferRequestAnswer(strAnswer));
+                webSocket.send(jsonStr);
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize json",e);
+            }
+        }else {
+            TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
+            ObjectMapper objectMapper = new ObjectMapper();
+            StringWriter stringWriter = new StringWriter();
+            try {
+                objectMapper.writeValue(stringWriter,out);
+                webSocket.send(stringWriter.toString());
+            }catch (IOException e){
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize TransferRequestAnswer",e);
+                return;
+            }
+        }
+
     }
 
     public boolean checkLogin(String login){
@@ -141,5 +181,12 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
         if (password.length()<6 || password.length()>255){
             return false;
         }else return true;
+    }
+
+    public String objToJson(Object c) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        StringWriter stringWriter = new StringWriter();
+        objectMapper.writeValue(stringWriter,c);
+        return stringWriter.toString();
     }
 }
