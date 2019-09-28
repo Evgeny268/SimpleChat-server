@@ -14,21 +14,21 @@ import java.util.logging.Level;
 
 public class MessageWorker implements Runnable, TypeRequestAnswer {
     private WebSocket webSocket;
-    private String message;
+    private String RecivedMessage;
 
-    public MessageWorker(WebSocket webSocket, String message) {
+    public MessageWorker(WebSocket webSocket, String RecivedMessage) {
         this.webSocket = webSocket;
-        this.message = message;
+        this.RecivedMessage = RecivedMessage;
     }
 
     @Override
     public void run() {
         String type="";
-        if (message==null) return;
+        if (RecivedMessage ==null) return;
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode node;
         try{
-            node = new ObjectMapper().readValue(message,ObjectNode.class);
+            node = new ObjectMapper().readValue(RecivedMessage,ObjectNode.class);
             if (node.has("type")){
                 type = node.get("type").asText();
             }
@@ -39,7 +39,7 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
         if (type.equals(".TransferRequestAnswer")){
             TransferRequestAnswer transfer;
             try {
-                transfer =(TransferRequestAnswer)objectMapper.readValue(message,TransferRequestAnswer.class);
+                transfer =(TransferRequestAnswer)objectMapper.readValue(RecivedMessage,TransferRequestAnswer.class);
             } catch (IOException e) {
                 AppLogger.LOGGER.log(Level.FINE,"can't deserialize message",e);
                 return;
@@ -54,6 +54,15 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 addFriend(transfer);
             }else if (transfer.request.equals(GET_REQUEST_IN)){
                 getRequestIn(transfer);
+            }
+        }else if (type.equals(".Message")){
+            Message message;
+            try {
+                message = (Message)objectMapper.readValue(RecivedMessage,Message.class);
+                sendMessage(message);
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't deserialize message",e);
+                return;
             }
         }
     }
@@ -180,6 +189,20 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 AppLogger.LOGGER.log(Level.FINE,"can't serialize RequestIn",e);
                 return;
             }
+        }else {
+            TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
+            try {
+                webSocket.send(objToJson(out));
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize TransferRequestAnswer",e);
+                return;
+            }
+        }
+    }
+
+    private void sendMessage(Message message){
+        if (ChatDBWorker.checkLogAndPass(message.login, message.password)){
+            ChatDBWorker.sendMessage(message);
         }else {
             TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
             try {
