@@ -543,4 +543,15 @@ public class ChatDBWorker extends DBWorker {
         }
         return messages;
     }
+
+    public static ArrayList<Message> getMessages(User user, int friendId, int count){
+        if (!alreadyConnect) return null;
+        if (!checkLogAndPass(user.login, user.password)) return null;
+        int userId = getUserId(user.login);
+        ArrayList<Integer> userFriends = selectFriends(userId);
+        if (userFriends.contains(friendId)){
+            ArrayList<Message> messages = selectMessages(userId,friendId,count);
+            return messages;
+        }else return null;
+    }
 }
