@@ -3,11 +3,14 @@ package com.evgeny;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.java_websocket.WebSocket;
+import transfers.Friends;
 import transfers.TransferRequestAnswer;
 import transfers.TypeRequestAnswer;
+import transfers.User;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.logging.Level;
 
 
@@ -47,6 +50,8 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 authorization(transfer);
             }else if (transfer.request.equals(REGISTRATION)){
                 registration(transfer);
+            }else if (transfer.request.equals(GET_FRIENDS)){
+                getFriends(transfer);
             }
         }
     }
@@ -57,6 +62,7 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
             answer = USER_NOT_EXIST;
         }else{
             if (ChatDBWorker.checkLogAndPass(transfer.login, transfer.password)){
+                WebServer.updateLogAndPas(webSocket,transfer.login,transfer.password);
                 answer = AUTHORIZATION_DONE;
             }else {
                 answer = WRONG_PASSWORD;
@@ -85,6 +91,7 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
             User user = new User(transfer.login,transfer.password);
             status = ChatDBWorker.registerUser(user);
             if (status==1){
+                WebServer.updateLogAndPas(webSocket,transfer.login,transfer.password);
                 strAnswer = REGISTRATION_DONE;
             }else if (status==0){
                 strAnswer = USER_ALREADY_EXIST;
@@ -102,6 +109,27 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
             return;
         }
         webSocket.send(stringWriter.toString());
+    }
+
+    private void getFriends(TransferRequestAnswer transfer){
+        String strAnswer = ERROR;
+        ArrayList<User> friendUser;
+        if (ChatDBWorker.checkLogAndPass(transfer.login, transfer.password)){
+            friendUser = ChatDBWorker.getUserFriend(new User(transfer.login, transfer.password));
+            Friends friends = new Friends(friendUser);
+            ObjectMapper objectMapper = new ObjectMapper();
+            StringWriter stringWriter = new StringWriter();
+            try{
+                objectMapper.writeValue(stringWriter,friends);
+                strAnswer = stringWriter.toString();
+            }catch (IOException e){
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize friends",e);
+                return;
+            }
+        }else {
+            strAnswer = AUTHORIZATION_FAILURE;
+        }
+        webSocket.send(strAnswer);
     }
 
     public boolean checkLogin(String login){
