@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -492,5 +493,54 @@ public class ChatDBWorker extends DBWorker {
             }
         }else return -1;
         return 1;
+    }
+
+    public static ArrayList<Message> selectMessages(int userId, int friendId, int count){
+        if (!alreadyConnect) return null;
+        ArrayList<Message> messages = new ArrayList<>();
+        PreparedStatement pstmt = null;
+        ResultSet resultSet = null;
+        try {
+            pstmt = connection.prepareStatement("SELECT TOP ? * FROM message WHERE (id_from = ? AND id_to = ?) OR (id_to = ? AND id_from = ?");
+            pstmt.setInt(1,count);
+            pstmt.setInt(2,userId);
+            pstmt.setInt(3,friendId);
+            pstmt.setInt(4,userId);
+            pstmt.setInt(5,friendId);
+            resultSet = pstmt.executeQuery();
+            while (resultSet.next()) {
+                int idMessage = resultSet.getInt(1);
+                int id_from = resultSet.getInt(2);
+                int id_to = resultSet.getInt(3);
+                String sDate = resultSet.getString(4);
+                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date date;
+                try {
+                    date = format.parse(sDate);
+                } catch (ParseException e) {
+                    AppLogger.LOGGER.log(Level.WARNING,"Can't parce date",e);
+                    date = new Date();
+                }
+                String text = resultSet.getString(5);
+                Message message = new Message(idMessage,id_from,id_to,date,text);
+                messages.add(message);
+            }
+        } catch (SQLException e) {
+            AppLogger.LOGGER.log(Level.WARNING,"Can't selectMessage",e);
+        }catch (Exception e){
+            AppLogger.LOGGER.log(Level.WARNING,"Can't selectMessage",e);
+        }finally {
+            try {
+                resultSet.close();
+            } catch (SQLException e) {
+                AppLogger.LOGGER.log(Level.WARNING,"Can't close result set",e);
+            }
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                AppLogger.LOGGER.log(Level.WARNING,"Can't close prepared statement set",e);
+            }
+        }
+        return messages;
     }
 }
