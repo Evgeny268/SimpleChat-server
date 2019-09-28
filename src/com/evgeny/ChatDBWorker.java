@@ -1,5 +1,6 @@
 package com.evgeny;
 
+import transfers.Message;
 import transfers.RequestIn;
 import transfers.User;
 
@@ -474,5 +475,22 @@ public class ChatDBWorker extends DBWorker {
             }
         }
         return true;
+    }
+
+    public static int sendMessage(Message message){
+        if (!alreadyConnect) return -2;
+        if (!checkLogAndPass(message.login, message.password)) return -1;
+        int userId = getUserId(message.login);
+        ArrayList<Integer> userFriends = selectFriends(userId);
+        if (userFriends.contains(message.id_to)){
+            insertMessage(userId,message.id_to,message.text);
+            try {
+                connection.commit();
+            } catch (SQLException e) {
+                AppLogger.LOGGER.log(Level.WARNING,"Can't commit",e);
+                return -2;
+            }
+        }else return -1;
+        return 1;
     }
 }
