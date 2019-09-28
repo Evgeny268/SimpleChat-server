@@ -7,7 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.logging.Level;
 //TODO Данный класс следует полностью переписать. Лютый говнокод
 
@@ -441,5 +443,36 @@ public class ChatDBWorker extends DBWorker {
         }
         RequestIn requestIn = new RequestIn(users);
         return requestIn;
+    }
+
+    public static boolean insertMessage(int userId, int friendId, String text){
+        if (!alreadyConnect) return false;
+        PreparedStatement pstmt = null;
+        try{
+            pstmt = connection.prepareStatement("INSERT INTO message (id_from, id_to, date, text) VALUES(?,?,?,?)");
+            pstmt.setInt(1,userId);
+            pstmt.setInt(2,friendId);
+            Date date = new Date();
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String currentDateTime = format.format(date);
+            pstmt.setString(3,currentDateTime);
+            pstmt.setString(4,text);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            AppLogger.LOGGER.log(Level.WARNING,"Can't insert message in db",e);
+            return false;
+        }catch (Exception e){
+            AppLogger.LOGGER.log(Level.WARNING,"Can't insert message in db",e);
+            return false;
+        }finally {
+            try{
+                pstmt.close();
+            }catch (SQLException e){
+                AppLogger.LOGGER.log(Level.WARNING,"Can't close PreparedStatement in insertFriend",e);
+            }catch (Exception e){
+                AppLogger.LOGGER.log(Level.WARNING,"Can't close PreparedStatement in insertFriend",e);
+            }
+        }
+        return true;
     }
 }
