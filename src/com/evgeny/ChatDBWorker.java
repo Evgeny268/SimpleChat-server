@@ -1,11 +1,14 @@
 package com.evgeny;
 
+import transfers.User;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.util.ArrayList;
 import java.util.logging.Level;
+//TODO Данный класс следует полностью переписать. Лютый говнокод
 
 public class ChatDBWorker extends DBWorker {
 
@@ -168,14 +171,13 @@ public class ChatDBWorker extends DBWorker {
         return true;
     }
 
-    public static int getUserId(String login, String password){
+    public static int getUserId(String login){
         if (!alreadyConnect) return -1;
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
         try {
-            pstmt = connection.prepareStatement("SELECT iduser FROM user WHERE user.login = ? AND user.password = ?");
+            pstmt = connection.prepareStatement("SELECT iduser FROM user WHERE user.login = ?");
             pstmt.setString(1,login);
-            pstmt.setString(2,password);
             resultSet = pstmt.executeQuery();
             while (resultSet.next()){
                 return resultSet.getInt(1);
@@ -233,7 +235,7 @@ public class ChatDBWorker extends DBWorker {
         }
     }
 
-    public static ArrayList<Integer> selectFriend(int idUser){
+    public static ArrayList<Integer> selectFriends(int idUser){
         if (!alreadyConnect) return null;
         ArrayList<Integer> list = new ArrayList<>();
         PreparedStatement pstmt = null;
@@ -343,6 +345,7 @@ public class ChatDBWorker extends DBWorker {
 
     public static ArrayList<User> getUserFriend(User user){
         if (!alreadyConnect) return null;
+        if (!checkLogAndPass(user.login, user.password)) return null;
         Savepoint savepoint = null;
         ArrayList<Integer> friendsId = null;
         ArrayList<User> friends = null;
@@ -352,9 +355,10 @@ public class ChatDBWorker extends DBWorker {
             AppLogger.LOGGER.log(Level.WARNING,"can't create savepoint",e);
             return null;
         }
-        int idUser = getUserId(user.login, user.password);
+        int idUser = 0;
+        idUser = getUserId(user.login);
         if (idUser>0){
-            friendsId = selectFriend(idUser);
+            friendsId = selectFriends(idUser);
             if (friendsId != null){
                 friends = new ArrayList<>();
                 for (int i = 0; i < friendsId.size(); i++) {
@@ -401,5 +405,25 @@ public class ChatDBWorker extends DBWorker {
             }
         }
         return true;
+    }
+
+    public static int addFriend(User user, User friend){
+        int result  = 0;
+        if (!alreadyConnect) return -2;
+        if (!checkLogAndPass(user.login, user.password)) return -1;
+        if (!userIsExist(friend.login)) return -2;
+        int userId = getUserId(user.login);
+        int friendId = getUserId(friend.login);
+        if (userId <=0 || friendId <=0) return -2;
+        if(insertFriend(userId, friendId)){
+            result = 1;
+        }else result = 0;
+        try {
+            connection.commit();
+        } catch (SQLException e) {
+            AppLogger.LOGGER.log(Level.WARNING,"Can't commit",e);
+            return -2;
+        }
+        return 1;
     }
 }
