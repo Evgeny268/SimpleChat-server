@@ -10,7 +10,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
-//TODO добавить метод objToJson и checkAuthorization
+//TODO добавить метод checkAuthorization и возврат всегда возвращает объект
 
 public class MessageWorker implements Runnable, TypeRequestAnswer {
     private WebSocket webSocket;
@@ -54,6 +54,8 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
                 addFriend(transfer);
             }else if (transfer.request.equals(GET_REQUEST_IN)){
                 getRequestIn(transfer);
+            }else if (transfer.request.equals(GET_MESSAGES)){
+                getMessages(transfer);
             }
         }else if (type.equals(".Message")){
             Message message;
@@ -203,6 +205,52 @@ public class MessageWorker implements Runnable, TypeRequestAnswer {
     private void sendMessage(Message message){
         if (ChatDBWorker.checkLogAndPass(message.login, message.password)){
             ChatDBWorker.sendMessage(message);
+            TransferRequestAnswer out = new TransferRequestAnswer(NEW_MESSAGE);
+            String answer = ERROR;
+            try {
+                answer = objToJson(out);
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't convert to json",e);
+                return;
+            }
+            User friend = ChatDBWorker.getUserById(message.id_to);
+            ArrayList<ClientInfo> clients = WebServer.getClients();
+            for (int i = 0; i < clients.size(); i++) {
+                if (clients.get(i).getLogin().equals(message.login) || clients.get(i).getLogin().equals(friend.login)){
+                    clients.get(i).getWebSocket().send(answer);
+                }
+            }
+        }else {
+            TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
+            try {
+                webSocket.send(objToJson(out));
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize TransferRequestAnswer",e);
+                return;
+            }
+        }
+    }
+
+    private void getMessages(TransferRequestAnswer transfer){
+        if (ChatDBWorker.checkLogAndPass(transfer.login, transfer.password)){
+            int friend_id = 0;
+            int count = 0;
+            String []arr = transfer.extra.split(" ");
+            try {
+                friend_id = Integer.parseInt(arr[0]);
+                count = Integer.parseInt(arr[1]);
+            }catch (Exception e){
+                AppLogger.LOGGER.log(Level.FINE,"can't parse string to int",e);
+                return;
+            }
+            ArrayList<Message> messages = ChatDBWorker.getMessages(new User(transfer.login,transfer.password),friend_id,count);
+            Messages arrMessages = new Messages(messages);
+            try {
+                webSocket.send(objToJson(arrMessages));
+            } catch (IOException e) {
+                AppLogger.LOGGER.log(Level.FINE,"can't serialize TransferRequestAnswer",e);
+                return;
+            }
         }else {
             TransferRequestAnswer out = new TransferRequestAnswer(AUTHORIZATION_FAILURE);
             try {
