@@ -1,4 +1,6 @@
-package com.evgeny;
+package DBUtils;
+
+import com.evgeny.AppLogger;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
