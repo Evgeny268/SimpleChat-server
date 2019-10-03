@@ -411,7 +411,7 @@ public class ChatDBWorker extends DBWorker {
         }
     }
 
-    public static void sendMessage(Message message) throws AccessRightsException, SQLException, UserNotFriendExxception {
+    public static void sendMessage(Message message) throws AccessRightsException, SQLException, UserNotFriendException {
         if (!checkLogAndPass(message.login, message.password)){
             throw new AccessRightsException("User failed authorization!");
         }
@@ -421,7 +421,7 @@ public class ChatDBWorker extends DBWorker {
             insertMessage(userId,message.id_to,message.text);
             connection.commit();
         }else{
-            throw new UserNotFriendExxception("send message to not friend user!");
+            throw new UserNotFriendException("send message to not friend user!");
         }
     }
 
@@ -475,7 +475,7 @@ public class ChatDBWorker extends DBWorker {
         return messages;
     }
 
-    public static ArrayList<Message> getMessages(User user, int friendId, int count) throws AccessRightsException, SQLException, UserNotFriendExxception {
+    public static ArrayList<Message> getMessages(User user, int friendId, int count) throws AccessRightsException, SQLException, UserNotFriendException {
         if (!checkLogAndPass(user.login, user.password)){
             throw new AccessRightsException("User failed authorization!");
         }
@@ -485,7 +485,7 @@ public class ChatDBWorker extends DBWorker {
             ArrayList<Message> messages = selectMessages(userId,friendId,count);
             return messages;
         }else{
-            throw new UserNotFriendExxception();
+            throw new UserNotFriendException();
         }
     }
 }
